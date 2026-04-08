@@ -5,11 +5,35 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-http://localhost:8080}"
 SCENARIO="${1:-all}"
 USER_PREFIX="${USER_PREFIX:-double-hit-$(date +%s)}"
+ITERATIONS="${ITERATIONS:-1}"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 OVERALL_EXIT_CODE=0
+
+usage() {
+  cat <<'EOF'
+Usage: scripts/simulate_double_hit.sh [request|validate|all|help]
+
+Environment variables:
+  BASE_URL      Target API base URL (default: http://localhost:8080)
+  USER_PREFIX   Prefix for generated test users
+  ITERATIONS    Number of times to repeat the selected simulation (default: 1)
+
+Examples:
+  bash scripts/simulate_double_hit.sh request
+  ITERATIONS=10 bash scripts/simulate_double_hit.sh all
+  BASE_URL=http://localhost:9000 bash scripts/simulate_double_hit.sh validate
+EOF
+}
+
+validate_iterations() {
+  if ! [[ "$ITERATIONS" =~ ^[1-9][0-9]*$ ]]; then
+    printf 'ITERATIONS must be a positive integer, got: %s\n' "$ITERATIONS" >&2
+    exit 1
+  fi
+}
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -218,23 +242,46 @@ main() {
   require_command sed
   require_command tr
   require_command mktemp
+  validate_iterations
 
   case "$SCENARIO" in
+    help|-h|--help)
+      usage
+      exit 0
+      ;;
     request)
-      simulate_request_double_hit "${USER_PREFIX}-request"
       ;;
     validate)
-      simulate_validate_double_hit "${USER_PREFIX}-validate"
       ;;
     all)
-      simulate_request_double_hit "${USER_PREFIX}-request"
-      simulate_validate_double_hit "${USER_PREFIX}-validate"
       ;;
     *)
-      printf 'Usage: %s [request|validate|all]\n' "$0" >&2
+      usage >&2
       exit 1
       ;;
   esac
+
+  local i run_prefix
+  for ((i = 1; i <= ITERATIONS; i++)); do
+    run_prefix="$USER_PREFIX"
+    if [ "$ITERATIONS" -gt 1 ]; then
+      run_prefix="${USER_PREFIX}-${i}"
+      printf '== Iteration %s/%s ==\n\n' "$i" "$ITERATIONS"
+    fi
+
+    case "$SCENARIO" in
+      request)
+        simulate_request_double_hit "${run_prefix}-request"
+        ;;
+      validate)
+        simulate_validate_double_hit "${run_prefix}-validate"
+        ;;
+      all)
+        simulate_request_double_hit "${run_prefix}-request"
+        simulate_validate_double_hit "${run_prefix}-validate"
+        ;;
+    esac
+  done
 
   exit "$OVERALL_EXIT_CODE"
 }
