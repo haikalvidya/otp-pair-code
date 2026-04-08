@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	coreotp "otp-pair-code-interview/internal/core/otp"
-	"otp-pair-code-interview/internal/ports"
+	coreotp "otp-pair-code/internal/core/otp"
+	"otp-pair-code/internal/ports"
 )
 
 const otpTTL = 2 * time.Minute

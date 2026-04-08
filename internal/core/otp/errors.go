@@ -1,6 +1,6 @@
 package otp
 
-import domainerror "otp-pair-code-interview/internal/core/domainerror"
+import domainerror "otp-pair-code/internal/core/domainerror"
 
 const (
 	CodeInvalidRequest = "invalid_request"

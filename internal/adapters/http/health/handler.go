@@ -3,7 +3,7 @@ package healthhttp
 import (
 	"net/http"
 
-	httpadapter "otp-pair-code-interview/internal/adapters/http"
+	httpadapter "otp-pair-code/internal/adapters/http"
 )
 
 type Handler struct{}

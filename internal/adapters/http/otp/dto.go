@@ -1,6 +1,6 @@
 package otphttp
 
-import httpadapter "otp-pair-code-interview/internal/adapters/http"
+import httpadapter "otp-pair-code/internal/adapters/http"
 
 type RequestOTPRequest struct {
 	UserID string `json:"user_id" example:"Robert"`

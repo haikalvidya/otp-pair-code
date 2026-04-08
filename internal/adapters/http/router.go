@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 
-	_ "otp-pair-code-interview/docs"
+	_ "otp-pair-code/docs"
 )
 
 type OTPRoutes interface {

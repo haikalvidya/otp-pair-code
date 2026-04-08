@@ -10,8 +10,8 @@ import (
 
 	"github.com/rs/zerolog"
 
-	otpapp "otp-pair-code-interview/internal/application/otp"
-	coreotp "otp-pair-code-interview/internal/core/otp"
+	otpapp "otp-pair-code/internal/application/otp"
+	coreotp "otp-pair-code/internal/core/otp"
 )
 
 type stubService struct {

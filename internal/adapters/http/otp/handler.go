@@ -8,8 +8,8 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 
-	httpadapter "otp-pair-code-interview/internal/adapters/http"
-	otpapp "otp-pair-code-interview/internal/application/otp"
+	httpadapter "otp-pair-code/internal/adapters/http"
+	otpapp "otp-pair-code/internal/application/otp"
 )
 
 type OTPService interface {

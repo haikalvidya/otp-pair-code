@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	domainerror "otp-pair-code-interview/internal/core/domainerror"
+	domainerror "otp-pair-code/internal/core/domainerror"
 )
 
 func TestMapDomainErrorCoversAllKnownKinds(t *testing.T) {

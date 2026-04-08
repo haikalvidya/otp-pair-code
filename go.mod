@@ -1,4 +1,4 @@
-module otp-pair-code-interview
+module otp-pair-code
 
 go 1.25.0
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	coreotp "otp-pair-code-interview/internal/core/otp"
+	coreotp "otp-pair-code/internal/core/otp"
 )
 
 type CreateOTPParams struct {

@@ -11,11 +11,11 @@ import (
 
 	"github.com/rs/zerolog"
 
-	httpadapter "otp-pair-code-interview/internal/adapters/http"
-	healthhttp "otp-pair-code-interview/internal/adapters/http/health"
-	otphttp "otp-pair-code-interview/internal/adapters/http/otp"
-	otpapp "otp-pair-code-interview/internal/application/otp"
-	coreotp "otp-pair-code-interview/internal/core/otp"
+	httpadapter "otp-pair-code/internal/adapters/http"
+	healthhttp "otp-pair-code/internal/adapters/http/health"
+	otphttp "otp-pair-code/internal/adapters/http/otp"
+	otpapp "otp-pair-code/internal/application/otp"
+	coreotp "otp-pair-code/internal/core/otp"
 )
 
 type fakeService struct {

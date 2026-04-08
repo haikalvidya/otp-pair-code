@@ -1,6 +1,6 @@
 package healthhttp
 
-import httpadapter "otp-pair-code-interview/internal/adapters/http"
+import httpadapter "otp-pair-code/internal/adapters/http"
 
 type HealthData struct {
 	Status string `json:"status" example:"ok"`

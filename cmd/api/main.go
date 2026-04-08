@@ -15,7 +15,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"otp-pair-code-interview/internal/bootstrap"
+	"otp-pair-code/internal/bootstrap"
 )
 
 func main() {

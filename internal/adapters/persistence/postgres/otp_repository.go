@@ -10,8 +10,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	coreotp "otp-pair-code-interview/internal/core/otp"
-	"otp-pair-code-interview/internal/ports"
+	coreotp "otp-pair-code/internal/core/otp"
+	"otp-pair-code/internal/ports"
 )
 
 type OTPRepository struct {

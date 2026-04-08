@@ -3,7 +3,7 @@ package httpadapter
 import (
 	"net/http"
 
-	domainerror "otp-pair-code-interview/internal/core/domainerror"
+	domainerror "otp-pair-code/internal/core/domainerror"
 )
 
 type APIError struct {

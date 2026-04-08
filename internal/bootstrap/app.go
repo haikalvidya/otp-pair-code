@@ -13,11 +13,11 @@ import (
 	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog"
 
-	httpadapter "otp-pair-code-interview/internal/adapters/http"
-	healthhttp "otp-pair-code-interview/internal/adapters/http/health"
-	otphttp "otp-pair-code-interview/internal/adapters/http/otp"
-	"otp-pair-code-interview/internal/adapters/persistence/postgres"
-	otpapp "otp-pair-code-interview/internal/application/otp"
+	httpadapter "otp-pair-code/internal/adapters/http"
+	healthhttp "otp-pair-code/internal/adapters/http/health"
+	otphttp "otp-pair-code/internal/adapters/http/otp"
+	"otp-pair-code/internal/adapters/persistence/postgres"
+	otpapp "otp-pair-code/internal/application/otp"
 )
 
 func Run(ctx context.Context) error {
