@@ -3,6 +3,7 @@ package otpapp
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -35,6 +36,14 @@ type errGenerator struct {
 
 func (g errGenerator) Generate(context.Context) (string, error) {
 	return "", g.err
+}
+
+type fixedGenerator struct {
+	value string
+}
+
+func (g fixedGenerator) Generate(context.Context) (string, error) {
+	return g.value, nil
 }
 
 type stubRepo struct {
@@ -84,6 +93,158 @@ type fakeRepo struct {
 	nextID  int64
 	current map[string]*coreotp.Record
 	byID    map[int64]*coreotp.Record
+}
+
+type callBarrier struct {
+	mu      sync.Mutex
+	total   int
+	arrived int
+	ready   chan struct{}
+}
+
+func newCallBarrier(total int) *callBarrier {
+	return &callBarrier{total: total, ready: make(chan struct{})}
+}
+
+func (b *callBarrier) Wait() {
+	b.mu.Lock()
+	b.arrived++
+	ready := b.ready
+	if b.arrived == b.total {
+		close(b.ready)
+	}
+	b.mu.Unlock()
+	<-ready
+}
+
+type concurrentRepo struct {
+	mu               sync.Mutex
+	nextID           int64
+	current          map[string]*coreotp.Record
+	byID             map[int64]*coreotp.Record
+	getLatestBarrier *callBarrier
+}
+
+func newConcurrentRepo() *concurrentRepo {
+	return &concurrentRepo{
+		nextID:  1,
+		current: map[string]*coreotp.Record{},
+		byID:    map[int64]*coreotp.Record{},
+	}
+}
+
+func (r *concurrentRepo) GetLatestCreatedByUserID(_ context.Context, userID string) (*coreotp.Record, error) {
+	r.mu.Lock()
+	record := cloneRecord(r.current[userID])
+	r.mu.Unlock()
+
+	if r.getLatestBarrier != nil {
+		r.getLatestBarrier.Wait()
+	}
+
+	if record == nil || record.Status != coreotp.StatusCreated {
+		return nil, nil
+	}
+	return record, nil
+}
+
+func (r *concurrentRepo) Create(_ context.Context, params ports.CreateOTPParams) (*coreotp.Record, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if current := r.current[params.UserID]; current != nil && current.Status == coreotp.StatusCreated {
+		return nil, coreotp.ErrAlreadyActive
+	}
+
+	record := &coreotp.Record{
+		ID:             r.nextID,
+		UserID:         params.UserID,
+		Code:           params.Code,
+		Status:         coreotp.StatusCreated,
+		FailedAttempts: 0,
+		ExpiresAt:      params.ExpiresAt,
+		CreatedAt:      params.CreatedAt,
+		UpdatedAt:      params.UpdatedAt,
+	}
+	r.nextID++
+	r.current[record.UserID] = record
+	r.byID[record.ID] = record
+	return cloneRecord(record), nil
+}
+
+func (r *concurrentRepo) MarkExpired(_ context.Context, id int64, updatedAt time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	record := r.byID[id]
+	if record == nil || record.Status != coreotp.StatusCreated {
+		return nil
+	}
+
+	record.Status = coreotp.StatusExpired
+	record.UpdatedAt = updatedAt
+	delete(r.current, record.UserID)
+	return nil
+}
+
+func (r *concurrentRepo) IncrementFailedAttempts(_ context.Context, id int64, updatedAt time.Time) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	record := r.byID[id]
+	if record == nil || record.Status != coreotp.StatusCreated {
+		return 0, coreotp.ErrNotFound
+	}
+
+	record.FailedAttempts++
+	record.UpdatedAt = updatedAt
+	return record.FailedAttempts, nil
+}
+
+func (r *concurrentRepo) MarkValidated(_ context.Context, id int64, validatedAt time.Time) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	record := r.byID[id]
+	if record == nil || record.Status != coreotp.StatusCreated {
+		return coreotp.ErrNotFound
+	}
+
+	record.Status = coreotp.StatusValidated
+	record.ValidatedAt = &validatedAt
+	record.UpdatedAt = validatedAt
+	delete(r.current, record.UserID)
+	return nil
+}
+
+func (r *concurrentRepo) ActiveCount(userID string) int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	record := r.current[userID]
+	if record == nil || record.Status != coreotp.StatusCreated {
+		return 0
+	}
+	return 1
+}
+
+func (r *concurrentRepo) RecordByID(id int64) *coreotp.Record {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return cloneRecord(r.byID[id])
+}
+
+func cloneRecord(record *coreotp.Record) *coreotp.Record {
+	if record == nil {
+		return nil
+	}
+
+	cloned := *record
+	if record.ValidatedAt != nil {
+		validatedAt := *record.ValidatedAt
+		cloned.ValidatedAt = &validatedAt
+	}
+	return &cloned
 }
 
 func newFakeRepo() *fakeRepo {
@@ -449,5 +610,105 @@ func TestValidateOTPPropagatesRepositoryErrors(t *testing.T) {
 				t.Fatal("expected error, got nil")
 			}
 		})
+	}
+}
+
+func TestRequestOTPConcurrentRequestsKeepSingleActiveOTP(t *testing.T) {
+	repo := newConcurrentRepo()
+	repo.getLatestBarrier = newCallBarrier(2)
+	now := time.Date(2026, 4, 8, 10, 0, 0, 0, time.UTC)
+	service := NewService(repo, fakeClock{now: now}, fixedGenerator{value: "12345"}, Config{})
+
+	results := make(chan error, 2)
+	var wg sync.WaitGroup
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := service.RequestOTP(context.Background(), "Robert")
+			results <- err
+		}()
+	}
+	wg.Wait()
+	close(results)
+
+	successCount := 0
+	alreadyActiveCount := 0
+	for err := range results {
+		switch err {
+		case nil:
+			successCount++
+		case coreotp.ErrAlreadyActive:
+			alreadyActiveCount++
+		default:
+			t.Fatalf("expected only nil or ErrAlreadyActive, got %v", err)
+		}
+	}
+
+	if successCount != 1 {
+		t.Fatalf("expected exactly one successful request, got %d", successCount)
+	}
+	if alreadyActiveCount != 1 {
+		t.Fatalf("expected exactly one ErrAlreadyActive, got %d", alreadyActiveCount)
+	}
+	if activeCount := repo.ActiveCount("Robert"); activeCount != 1 {
+		t.Fatalf("expected exactly one active OTP, got %d", activeCount)
+	}
+}
+
+func TestValidateOTPConcurrentRequestsAllowOnlySingleSuccess(t *testing.T) {
+	repo := newConcurrentRepo()
+	now := time.Date(2026, 4, 8, 10, 0, 0, 0, time.UTC)
+	record, _ := repo.Create(context.Background(), ports.CreateOTPParams{
+		UserID:    "Robert",
+		Code:      "12345",
+		ExpiresAt: now.Add(time.Minute),
+		CreatedAt: now,
+		UpdatedAt: now,
+	})
+	repo.getLatestBarrier = newCallBarrier(2)
+	service := NewService(repo, fakeClock{now: now}, fixedGenerator{value: "00000"}, Config{MaxFailedAttempts: 5})
+
+	results := make(chan error, 2)
+	var wg sync.WaitGroup
+	for range 2 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := service.ValidateOTP(context.Background(), "Robert", "12345")
+			results <- err
+		}()
+	}
+	wg.Wait()
+	close(results)
+
+	successCount := 0
+	notFoundCount := 0
+	for err := range results {
+		switch err {
+		case nil:
+			successCount++
+		case coreotp.ErrNotFound:
+			notFoundCount++
+		default:
+			t.Fatalf("expected only nil or ErrNotFound, got %v", err)
+		}
+	}
+
+	if successCount != 1 {
+		t.Fatalf("expected exactly one successful validation, got %d", successCount)
+	}
+	if notFoundCount != 1 {
+		t.Fatalf("expected exactly one ErrNotFound, got %d", notFoundCount)
+	}
+	validated := repo.RecordByID(record.ID)
+	if validated == nil {
+		t.Fatal("expected OTP record to remain stored")
+	}
+	if validated.Status != coreotp.StatusValidated {
+		t.Fatalf("expected validated status, got %s", validated.Status)
+	}
+	if activeCount := repo.ActiveCount("Robert"); activeCount != 0 {
+		t.Fatalf("expected no active OTP after validation, got %d", activeCount)
 	}
 }
