@@ -29,7 +29,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/httpadapter.HealthResponse"
+                            "$ref": "#/definitions/healthhttp.HealthResponse"
                         }
                     }
                 }
@@ -55,7 +55,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/httpadapter.RequestOTPRequest"
+                            "$ref": "#/definitions/otphttp.RequestOTPRequest"
                         }
                     }
                 ],
@@ -63,7 +63,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/httpadapter.RequestOTPResponse"
+                            "$ref": "#/definitions/otphttp.RequestOTPResponse"
                         }
                     },
                     "400": {
@@ -107,7 +107,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/httpadapter.ValidateOTPRequest"
+                            "$ref": "#/definitions/otphttp.ValidateOTPRequest"
                         }
                     }
                 ],
@@ -115,7 +115,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/httpadapter.ValidateOTPResponse"
+                            "$ref": "#/definitions/otphttp.ValidateOTPResponse"
                         }
                     },
                     "400": {
@@ -153,20 +153,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "httpadapter.ErrorResponse": {
-            "type": "object",
-            "properties": {
-                "error": {
-                    "type": "string",
-                    "example": "otp_invalid"
-                },
-                "error_description": {
-                    "type": "string",
-                    "example": "OTP is invalid"
-                }
-            }
-        },
-        "httpadapter.HealthResponse": {
+        "healthhttp.HealthData": {
             "type": "object",
             "properties": {
                 "status": {
@@ -175,16 +162,57 @@ const docTemplate = `{
                 }
             }
         },
-        "httpadapter.RequestOTPRequest": {
+        "healthhttp.HealthResponse": {
             "type": "object",
             "properties": {
-                "user_id": {
-                    "type": "string",
-                    "example": "Robert"
+                "data": {
+                    "$ref": "#/definitions/healthhttp.HealthData"
+                },
+                "meta": {
+                    "$ref": "#/definitions/httpadapter.Meta"
                 }
             }
         },
-        "httpadapter.RequestOTPResponse": {
+        "httpadapter.ErrorBody": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "otp_invalid"
+                },
+                "details": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "example": "OTP is invalid"
+                }
+            }
+        },
+        "httpadapter.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "$ref": "#/definitions/httpadapter.ErrorBody"
+                },
+                "meta": {
+                    "$ref": "#/definitions/httpadapter.Meta"
+                }
+            }
+        },
+        "httpadapter.Meta": {
+            "type": "object",
+            "properties": {
+                "request_id": {
+                    "type": "string",
+                    "example": "5f4dcc3b-5aa7"
+                }
+            }
+        },
+        "otphttp.RequestOTPData": {
             "type": "object",
             "properties": {
                 "otp": {
@@ -197,20 +225,27 @@ const docTemplate = `{
                 }
             }
         },
-        "httpadapter.ValidateOTPRequest": {
+        "otphttp.RequestOTPRequest": {
             "type": "object",
             "properties": {
-                "otp": {
-                    "type": "string",
-                    "example": "61531"
-                },
                 "user_id": {
                     "type": "string",
                     "example": "Robert"
                 }
             }
         },
-        "httpadapter.ValidateOTPResponse": {
+        "otphttp.RequestOTPResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/otphttp.RequestOTPData"
+                },
+                "meta": {
+                    "$ref": "#/definitions/httpadapter.Meta"
+                }
+            }
+        },
+        "otphttp.ValidateOTPData": {
             "type": "object",
             "properties": {
                 "message": {
@@ -220,6 +255,30 @@ const docTemplate = `{
                 "user_id": {
                     "type": "string",
                     "example": "Robert"
+                }
+            }
+        },
+        "otphttp.ValidateOTPRequest": {
+            "type": "object",
+            "properties": {
+                "otp": {
+                    "type": "string",
+                    "example": "61531"
+                },
+                "user_id": {
+                    "type": "string",
+                    "example": "Robert"
+                }
+            }
+        },
+        "otphttp.ValidateOTPResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/otphttp.ValidateOTPData"
+                },
+                "meta": {
+                    "$ref": "#/definitions/httpadapter.Meta"
                 }
             }
         }

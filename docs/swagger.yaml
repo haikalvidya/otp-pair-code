@@ -1,27 +1,45 @@
 basePath: /
 definitions:
-  httpadapter.ErrorResponse:
-    properties:
-      error:
-        example: otp_invalid
-        type: string
-      error_description:
-        example: OTP is invalid
-        type: string
-    type: object
-  httpadapter.HealthResponse:
+  healthhttp.HealthData:
     properties:
       status:
         example: ok
         type: string
     type: object
-  httpadapter.RequestOTPRequest:
+  healthhttp.HealthResponse:
     properties:
-      user_id:
-        example: Robert
+      data:
+        $ref: '#/definitions/healthhttp.HealthData'
+      meta:
+        $ref: '#/definitions/httpadapter.Meta'
+    type: object
+  httpadapter.ErrorBody:
+    properties:
+      code:
+        example: otp_invalid
+        type: string
+      details:
+        additionalProperties:
+          type: string
+        type: object
+      message:
+        example: OTP is invalid
         type: string
     type: object
-  httpadapter.RequestOTPResponse:
+  httpadapter.ErrorResponse:
+    properties:
+      error:
+        $ref: '#/definitions/httpadapter.ErrorBody'
+      meta:
+        $ref: '#/definitions/httpadapter.Meta'
+    type: object
+  httpadapter.Meta:
+    properties:
+      request_id:
+        example: 5f4dcc3b-5aa7
+        type: string
+    type: object
+  otphttp.RequestOTPData:
     properties:
       otp:
         example: "61531"
@@ -30,16 +48,20 @@ definitions:
         example: Robert
         type: string
     type: object
-  httpadapter.ValidateOTPRequest:
+  otphttp.RequestOTPRequest:
     properties:
-      otp:
-        example: "61531"
-        type: string
       user_id:
         example: Robert
         type: string
     type: object
-  httpadapter.ValidateOTPResponse:
+  otphttp.RequestOTPResponse:
+    properties:
+      data:
+        $ref: '#/definitions/otphttp.RequestOTPData'
+      meta:
+        $ref: '#/definitions/httpadapter.Meta'
+    type: object
+  otphttp.ValidateOTPData:
     properties:
       message:
         example: OTP validated successfully.
@@ -47,6 +69,22 @@ definitions:
       user_id:
         example: Robert
         type: string
+    type: object
+  otphttp.ValidateOTPRequest:
+    properties:
+      otp:
+        example: "61531"
+        type: string
+      user_id:
+        example: Robert
+        type: string
+    type: object
+  otphttp.ValidateOTPResponse:
+    properties:
+      data:
+        $ref: '#/definitions/otphttp.ValidateOTPData'
+      meta:
+        $ref: '#/definitions/httpadapter.Meta'
     type: object
 info:
   contact: {}
@@ -63,7 +101,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/httpadapter.HealthResponse'
+            $ref: '#/definitions/healthhttp.HealthResponse'
       summary: Health check
       tags:
       - health
@@ -79,14 +117,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/httpadapter.RequestOTPRequest'
+          $ref: '#/definitions/otphttp.RequestOTPRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/httpadapter.RequestOTPResponse'
+            $ref: '#/definitions/otphttp.RequestOTPResponse'
         "400":
           description: Bad Request
           schema:
@@ -113,14 +151,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/httpadapter.ValidateOTPRequest'
+          $ref: '#/definitions/otphttp.ValidateOTPRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/httpadapter.ValidateOTPResponse'
+            $ref: '#/definitions/otphttp.ValidateOTPResponse'
         "400":
           description: Bad Request
           schema:

@@ -14,6 +14,8 @@ import (
 	"github.com/rs/zerolog"
 
 	httpadapter "otp-pair-code-interview/internal/adapters/http"
+	healthhttp "otp-pair-code-interview/internal/adapters/http/health"
+	otphttp "otp-pair-code-interview/internal/adapters/http/otp"
 	"otp-pair-code-interview/internal/adapters/persistence/postgres"
 	otpapp "otp-pair-code-interview/internal/application/otp"
 )
@@ -50,8 +52,9 @@ func Run(ctx context.Context) error {
 			MaxFailedAttempts: cfg.OTPMaxFailedAttempts,
 		},
 	)
-	handler := httpadapter.NewHandler(service, logger)
-	router := httpadapter.NewRouter(handler, logger, cfg.RequestTimeout)
+	otpHandler := otphttp.NewHandler(service, logger)
+	healthHandler := healthhttp.NewHandler()
+	router := httpadapter.NewRouter(otpHandler, healthHandler, logger, cfg.RequestTimeout)
 
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,

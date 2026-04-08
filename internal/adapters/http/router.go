@@ -12,7 +12,16 @@ import (
 	_ "otp-pair-code-interview/docs"
 )
 
-func NewRouter(handler *Handler, logger zerolog.Logger, requestTimeout time.Duration) http.Handler {
+type OTPRoutes interface {
+	RequestOTP(http.ResponseWriter, *http.Request)
+	ValidateOTP(http.ResponseWriter, *http.Request)
+}
+
+type HealthRoutes interface {
+	Healthz(http.ResponseWriter, *http.Request)
+}
+
+func NewRouter(otpHandler OTPRoutes, healthHandler HealthRoutes, logger zerolog.Logger, requestTimeout time.Duration) http.Handler {
 	r := chi.NewRouter()
 	r.Use(chimiddleware.RequestID)
 	r.Use(RequestLoggingMiddleware(logger))
@@ -21,10 +30,10 @@ func NewRouter(handler *Handler, logger zerolog.Logger, requestTimeout time.Dura
 		r.Use(chimiddleware.Timeout(requestTimeout))
 	}
 
-	r.Get("/healthz", handler.Healthz)
+	r.Get("/healthz", healthHandler.Healthz)
 	r.Route("/otp", func(r chi.Router) {
-		r.Post("/request", handler.RequestOTP)
-		r.Post("/validate", handler.ValidateOTP)
+		r.Post("/request", otpHandler.RequestOTP)
+		r.Post("/validate", otpHandler.ValidateOTP)
 	})
 	r.Get("/swagger/*", httpSwagger.Handler(httpSwagger.URL("/swagger/doc.json")))
 
