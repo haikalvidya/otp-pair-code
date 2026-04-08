@@ -1,0 +1,149 @@
+basePath: /
+definitions:
+  httpadapter.ErrorResponse:
+    properties:
+      error:
+        example: otp_invalid
+        type: string
+      error_description:
+        example: OTP is invalid
+        type: string
+    type: object
+  httpadapter.HealthResponse:
+    properties:
+      status:
+        example: ok
+        type: string
+    type: object
+  httpadapter.RequestOTPRequest:
+    properties:
+      user_id:
+        example: Robert
+        type: string
+    type: object
+  httpadapter.RequestOTPResponse:
+    properties:
+      otp:
+        example: "61531"
+        type: string
+      user_id:
+        example: Robert
+        type: string
+    type: object
+  httpadapter.ValidateOTPRequest:
+    properties:
+      otp:
+        example: "61531"
+        type: string
+      user_id:
+        example: Robert
+        type: string
+    type: object
+  httpadapter.ValidateOTPResponse:
+    properties:
+      message:
+        example: OTP validated successfully.
+        type: string
+      user_id:
+        example: Robert
+        type: string
+    type: object
+info:
+  contact: {}
+  description: OTP request and validation service.
+  title: OTP Service API
+  version: "1.0"
+paths:
+  /healthz:
+    get:
+      description: Check whether the service process is running.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httpadapter.HealthResponse'
+      summary: Health check
+      tags:
+      - health
+  /otp/request:
+    post:
+      consumes:
+      - application/json
+      description: Generate a new OTP for a user based on the configured active-OTP
+        policy.
+      parameters:
+      - description: Request OTP payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httpadapter.RequestOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httpadapter.RequestOTPResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpadapter.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpadapter.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httpadapter.ErrorResponse'
+      summary: Request OTP
+      tags:
+      - otp
+  /otp/validate:
+    post:
+      consumes:
+      - application/json
+      description: Validate an OTP for a user.
+      parameters:
+      - description: Validate OTP payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/httpadapter.ValidateOTPRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/httpadapter.ValidateOTPResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpadapter.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpadapter.ErrorResponse'
+        "410":
+          description: Gone
+          schema:
+            $ref: '#/definitions/httpadapter.ErrorResponse'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/httpadapter.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/httpadapter.ErrorResponse'
+      summary: Validate OTP
+      tags:
+      - otp
+schemes:
+- http
+swagger: "2.0"
